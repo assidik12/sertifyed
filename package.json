@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-files",
     "start": "node dist/src/index.js",
-    "dev": "nodemon --watch src --ext ts --exec ts-node index.ts"
+    "dev": "nodemon --watch src --ext ts --exec ts-node index.ts",
+    "copy-files": "copyfiles -u 1 src/**/*.yaml dist/src/"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "@types/yamljs": "^0.2.34",
     "babel-jest": "^30.0.5",
+    "copyfiles": "^2.4.1",
     "jest": "^30.0.5",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
