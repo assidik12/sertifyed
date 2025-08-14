@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { upload } from "../config/multer.config";
+import { uploadPdf } from "../config/cloudinary.config";
 import { uploadCertificate, getCertificateByOwner, getVerificationDataById } from "../controllers/certificateController";
 import protectRoute from "../middleware/protectRoute";
 
@@ -12,6 +12,6 @@ certificateRoute.get("/user", getCertificateByOwner);
 certificateRoute.get("/:tokenId", getVerificationDataById);
 
 // create certificate from institution
-certificateRoute.post("/", protectRoute, upload.single("certificate"), uploadCertificate);
+certificateRoute.post("/", protectRoute, uploadPdf.single("certificate"), uploadCertificate);
 
 export default certificateRoute;

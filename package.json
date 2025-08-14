@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && npm run copy-files",
+    "build": "tsc && copyfiles -u 1 src/**/*.yaml dist/src/",
     "start": "node dist/src/index.js",
-    "dev": "nodemon --watch src --ext ts --exec ts-node index.ts",
-    "copy-files": "copyfiles -u 1 src/**/*.yaml dist/src/"
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +41,7 @@
     "@types/web3": "^1.0.20",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -54,6 +54,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.0",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "qrcode": "^1.5.4",
     "swagger-ui-express": "^5.0.1",
     "web3": "^4.16.0",
