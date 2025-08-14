@@ -1,12 +1,12 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import dbconfig from "./src/config/db.config";
-import authRoute from "./src/routes/authRoutes";
+import dbconfig from "./config/db.config";
+import authRoute from "./routes/authRoutes";
 import cookieParser from "cookie-parser";
 import path from "path";
-import uploadRoute from "./src/routes/fileRoutes";
-import certificateRoute from "./src/routes/certicateRoutes";
+import uploadRoute from "./routes/fileRoutes";
+import certificateRoute from "./routes/certicateRoutes";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import YAML from "yamljs";
