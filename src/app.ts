@@ -65,6 +65,4 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   return res.status(500).json({ message: "Internal Server Error", error: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+export default app;
