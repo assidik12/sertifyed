@@ -20,11 +20,11 @@ app.set("trust proxy", true);
 const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
 
 // Buat route untuk dokumentasi API
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: "*",
     credentials: true,
   })
 );

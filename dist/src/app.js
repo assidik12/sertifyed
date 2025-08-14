@@ -10,7 +10,6 @@ const db_config_1 = __importDefault(require("./config/db.config"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const path_1 = __importDefault(require("path"));
-// import uploadRoute from "./routes/fileRoutes";
 const certicateRoutes_1 = __importDefault(require("./routes/certicateRoutes"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const cors_1 = __importDefault(require("cors"));
@@ -18,8 +17,12 @@ const yamljs_1 = __importDefault(require("yamljs"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
+app.set("trust proxy", true);
+const swaggerDocument = yamljs_1.default.load(path_1.default.join(__dirname, "./docs/swagger.yaml"));
+// Buat route untuk dokumentasi API
+app.use("/docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
 app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: "*",
     credentials: true,
 }));
 const limiter = (0, express_rate_limit_1.default)({
@@ -29,14 +32,11 @@ const limiter = (0, express_rate_limit_1.default)({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     message: "Too many requests from this IP, please try again later.",
 });
-app.use(limiter);
+// app.use(limiter);
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json({ limit: "2mb" })); // Limit JSON body size to 2MB
 app.use(express_1.default.urlencoded({ extended: true, limit: "2mb" })); // Limit URL-encoded body size to 2MB
 db_config_1.default.connect();
-const swaggerDocument = yamljs_1.default.load(path_1.default.join(__dirname, "./docs/swagger.yaml"));
-// Buat route untuk dokumentasi API
-app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
 // Set up routes
 // app.use("/api/upload", uploadRoute);
 app.use("/api/certificate", certicateRoutes_1.default);

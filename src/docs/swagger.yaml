@@ -8,7 +8,7 @@ info:
 servers:
   - url: "http://localhost:5000/api"
     description: "Server Pengembangan Lokal"
-  - url: "https://api.sertifyed.com/api"
+  - url: "https://sertifyed-seven.vercel.app/"
     description: "Server Produksi"
 
 tags:
