@@ -25,7 +25,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(
   cors({
     origin: "*",
-    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
