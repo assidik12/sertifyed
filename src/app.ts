@@ -5,7 +5,7 @@ import dbconfig from "./config/db.config";
 import authRoute from "./routes/authRoutes";
 import cookieParser from "cookie-parser";
 import path from "path";
-import uploadRoute from "./routes/fileRoutes";
+// import uploadRoute from "./routes/fileRoutes";
 import certificateRoute from "./routes/certicateRoutes";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
@@ -15,8 +15,6 @@ import swaggerUi from "swagger-ui-express";
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-
-app.use("/uploads", express.static(path.join(process.cwd(), "src/uploads")));
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
@@ -45,7 +43,7 @@ const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Set up routes
-app.use("/api/upload", uploadRoute);
+// app.use("/api/upload", uploadRoute);
 app.use("/api/certificate", certificateRoute);
 app.use("/api/auth", authRoute);
 

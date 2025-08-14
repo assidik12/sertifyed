@@ -10,7 +10,7 @@ const db_config_1 = __importDefault(require("./config/db.config"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const path_1 = __importDefault(require("path"));
-const fileRoutes_1 = __importDefault(require("./routes/fileRoutes"));
+// import uploadRoute from "./routes/fileRoutes";
 const certicateRoutes_1 = __importDefault(require("./routes/certicateRoutes"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const cors_1 = __importDefault(require("cors"));
@@ -18,7 +18,6 @@ const yamljs_1 = __importDefault(require("yamljs"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
-app.use("/uploads", express_1.default.static(path_1.default.join(process.cwd(), "src/uploads")));
 app.use((0, cors_1.default)({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
@@ -39,7 +38,7 @@ const swaggerDocument = yamljs_1.default.load(path_1.default.join(__dirname, "./
 // Buat route untuk dokumentasi API
 app.use("/api-docs", swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
 // Set up routes
-app.use("/api/upload", fileRoutes_1.default);
+// app.use("/api/upload", uploadRoute);
 app.use("/api/certificate", certicateRoutes_1.default);
 app.use("/api/auth", authRoutes_1.default);
 // testing api
