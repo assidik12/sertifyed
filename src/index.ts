@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true, limit: "2mb" })); // Limit URL-enco
 
 dbconfig.connect();
 
-const swaggerDocument = YAML.load(path.join(__dirname, "./src/docs/swagger.yaml"));
+const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
 
 // Buat route untuk dokumentasi API
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
