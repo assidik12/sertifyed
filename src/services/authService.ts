@@ -15,12 +15,13 @@ class AuthService {
     if (existingUser) {
       throw new Error("User already exists");
     }
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       name,
       email,
-      password,
+      password: hashedPassword,
       address,
-      role,
+      role: role || "student",
       walletAddress,
     });
     await newUser.save();

@@ -26,12 +26,13 @@ class AuthService {
             if (existingUser) {
                 throw new Error("User already exists");
             }
+            const hashedPassword = yield bcrypt_1.default.hash(password, 10);
             const newUser = new User_1.default({
                 name,
                 email,
-                password,
+                password: hashedPassword,
                 address,
-                role,
+                role: role || "student",
                 walletAddress,
             });
             yield newUser.save();
