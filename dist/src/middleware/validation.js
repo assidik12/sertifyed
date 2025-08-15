@@ -8,7 +8,7 @@ const joi_1 = __importDefault(require("joi"));
 const registerUserSchema = joi_1.default.object({
     name: joi_1.default.string().min(2).max(50).required(),
     email: joi_1.default.string().email().required(),
-    address: joi_1.default.string().required(),
+    walletAddress: joi_1.default.string().required(),
     password: joi_1.default.string().min(6).required(),
     role: joi_1.default.string().optional(),
 });

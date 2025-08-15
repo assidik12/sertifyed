@@ -15,9 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const authService_1 = __importDefault(require("../services/authService"));
 const authController = {
     registerUser: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
         try {
-            const { name, email, password, address, role, walletAddress } = req.body;
-            yield authService_1.default.registerUser({ name, email, password, address, role, walletAddress });
+            const { name, email, password, role, walletAddress } = req.body;
+            const issuerAddress = (_a = req.user) === null || _a === void 0 ? void 0 : _a.walletAddress;
+            console.log(issuerAddress);
+            yield authService_1.default.registerUser({ name, email, password, issuerAddress, role, walletAddress });
             res.status(201).json({
                 success: true,
                 message: "User registered successfully",
@@ -25,7 +28,7 @@ const authController = {
         }
         catch (error) {
             if (error instanceof Error) {
-                if (error.message === "User already exists") {
+                if (error.message === "User already exists" || error.message === "Issuer not found, cannot register user") {
                     res.status(400).json({
                         success: false,
                         message: error.message,

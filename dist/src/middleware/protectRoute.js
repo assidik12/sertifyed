@@ -16,6 +16,7 @@ const protectRoute = (req, res, next) => {
             id: payload.id,
             email: payload.email,
             institutionName: payload.owner,
+            walletAddress: payload.walletAddress,
         };
         next();
     }

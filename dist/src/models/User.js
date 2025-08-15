@@ -56,8 +56,6 @@ const UserSchema = new mongoose_1.Schema({
     walletAddress: {
         type: String,
         unique: true,
-        sparse: true,
-        lowercase: true,
     },
     sertificates: [
         {
@@ -65,7 +63,7 @@ const UserSchema = new mongoose_1.Schema({
             ref: "Certificate",
             required: false,
         },
-    ]
+    ],
 });
 const User = mongoose_1.default.model("User", UserSchema);
 exports.default = User;

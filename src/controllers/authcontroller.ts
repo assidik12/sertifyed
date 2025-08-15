@@ -4,11 +4,12 @@ import authService from "../services/authService";
 import type { CustomRequest } from "../types/customRequest";
 
 const authController = {
-  registerUser: async (req: Request, res: Response): Promise<void> => {
+  registerUser: async (req: CustomRequest, res: Response): Promise<void> => {
     try {
-      const { name, email, password, address, role, walletAddress } = req.body;
+      const { name, email, password, role, walletAddress } = req.body;
+      const issuerAddress = req.user?.walletAddress as string;
 
-      await authService.registerUser({ name, email, password, address, role, walletAddress });
+      await authService.registerUser({ name, email, password, issuerAddress, role, walletAddress });
 
       res.status(201).json({
         success: true,
@@ -16,7 +17,7 @@ const authController = {
       });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "User already exists") {
+        if (error.message === "User already exists" || error.message === "Issuer not found, cannot register user") {
           res.status(400).json({
             success: false,
             message: error.message,

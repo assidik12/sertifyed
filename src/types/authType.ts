@@ -2,7 +2,7 @@ export interface RegisterUserData {
   name: string;
   email: string;
   password: string;
-  address: string;
+  issuerAddress: string;
   role: string;
   walletAddress: string;
 }

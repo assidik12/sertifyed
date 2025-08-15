@@ -23,8 +23,6 @@ const UserSchema: Schema = new Schema<IUser>({
   walletAddress: {
     type: String,
     unique: true,
-    sparse: true,
-    lowercase: true,
   },
   sertificates: [
     {
@@ -32,7 +30,7 @@ const UserSchema: Schema = new Schema<IUser>({
       ref: "Certificate",
       required: false,
     },
-  ]
+  ],
 });
 
 const User = mongoose.model<IUser>("User", UserSchema);

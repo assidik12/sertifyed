@@ -8,10 +8,17 @@ import User from "../models/User";
 
 class AuthService {
   // register user as recipient
-  async registerUser(userData: RegisterUserData): Promise<void> {
-    const { name, email, password, address, role, walletAddress } = userData;
+  async registerUser(userData: RegisterUserData): Promise<any> {
+    const { name, email, password, issuerAddress, role, walletAddress } = userData;
 
     const existingUser = await User.findOne({ email });
+
+    const existingIssuer = await Institution.findOne({ address: issuerAddress });
+
+    if (!existingIssuer) {
+      throw new Error("Issuer not found, cannot register user");
+    }
+
     if (existingUser) {
       throw new Error("User already exists");
     }
@@ -21,11 +28,11 @@ class AuthService {
       name,
       email,
       password: hashedPassword,
-      address,
       role,
       walletAddress,
     });
-    await newUser.save();
+
+    return await newUser.save();
   }
 
   // register user as institution(issuer)

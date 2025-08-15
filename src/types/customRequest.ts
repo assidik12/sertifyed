@@ -5,5 +5,6 @@ export interface CustomRequest extends Request {
     id: string;
     email: string;
     institutionName: string;
+    walletAddress: string;
   };
 }

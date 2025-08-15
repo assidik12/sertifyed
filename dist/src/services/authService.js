@@ -21,20 +21,24 @@ class AuthService {
     // register user as recipient
     registerUser(userData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { name, email, password, address, role, walletAddress } = userData;
+            const { name, email, password, issuerAddress, role, walletAddress } = userData;
             const existingUser = yield User_1.default.findOne({ email });
+            const existingIssuer = yield Insitution_1.default.findOne({ address: issuerAddress });
+            if (!existingIssuer) {
+                throw new Error("Issuer not found, cannot register user");
+            }
             if (existingUser) {
                 throw new Error("User already exists");
             }
+            const hashedPassword = yield bcrypt_1.default.hash(password, 10);
             const newUser = new User_1.default({
                 name,
                 email,
-                password,
-                address,
+                password: hashedPassword,
                 role,
                 walletAddress,
             });
-            yield newUser.save();
+            return yield newUser.save();
         });
     }
     // register user as institution(issuer)
