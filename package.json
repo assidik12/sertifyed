@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc && copyfiles -u 1 src/**/*.yaml dist/src/",
+    "build": "tsc",
     "start": "node dist/api/index.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
   },
