@@ -22,13 +22,25 @@ const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
 // Buat route untuk dokumentasi API
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  })
-);
+const allowedOrigins = ["http://localhost:5173", "https://sertifyed.vercel.app/", "https://localhost:3000/"];
 
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // allow requests with no origin
+    if (!origin) return callback(null, true);
+    // allow requests from specified origins
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // WAJIB ada untuk mengizinkan cookies/credentials
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+};
+
+app.use(cors(corsOptions));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -37,7 +49,7 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
-// app.use(limiter);
+app.use(limiter);
 app.use(cookieParser());
 app.use(express.json({ limit: "2mb" })); // Limit JSON body size to 2MB
 app.use(express.urlencoded({ extended: true, limit: "2mb" })); // Limit URL-encoded body size to 2MB
