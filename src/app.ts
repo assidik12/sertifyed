@@ -15,7 +15,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-app.set("trust proxy", true);
+app.set("trust proxy", 1); // Enable trust proxy for rate limiting and CORS
 
 const swaggerDocument = YAML.load(path.join(__dirname, "./docs/swagger.yaml"));
 
