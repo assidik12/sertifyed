@@ -15,13 +15,13 @@ const app = express();
 
 app.set("trust proxy", 1); // Enable trust proxy for rate limiting and CORS
 
-const allowedOrigins = ["http://localhost:5173", "https://sertifyed.vercel.app/", "https://localhost:3000/"];
+const allowedOrigins = ["http://localhost:5173", "https://sertifyed.vercel.app/", "http://localhost:3000/"];
 
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"],
   })
 );
