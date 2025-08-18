@@ -63,6 +63,7 @@ const authController = {
   login: async (req: Request, res: Response): Promise<void> => {
     try {
       const { email, password } = req.body;
+      console.log("otw");
 
       const loginResult = await authService.loginUser({ email, password });
 

@@ -19,7 +19,6 @@ const authController = {
         try {
             const { name, email, password, role, walletAddress } = req.body;
             const issuerAddress = (_a = req.user) === null || _a === void 0 ? void 0 : _a.walletAddress;
-            console.log(issuerAddress);
             yield authService_1.default.registerUser({ name, email, password, issuerAddress, role, walletAddress });
             res.status(201).json({
                 success: true,
@@ -70,6 +69,7 @@ const authController = {
     login: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const { email, password } = req.body;
+            console.log("otw");
             const loginResult = yield authService_1.default.loginUser({ email, password });
             res.cookie("refreshToken", loginResult.refreshToken, {
                 httpOnly: true,

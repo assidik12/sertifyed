@@ -15,16 +15,29 @@ const app = express();
 
 app.set("trust proxy", 1); // Enable trust proxy for rate limiting and CORS
 
-const allowedOrigins = ["http://localhost:5173", "https://sertifyed.vercel.app/", "http://localhost:3000/"];
+const allowedOrigins = ["http://localhost:5173", "https://sertifyed.vercel.app", "http://localhost:3000"];
 
+// Proper CORS configuration
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log("Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow cookies to be sent
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "Cache-Control", "Pragma"],
+    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
   })
 );
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100, // Limit each IP to 100 requests per windowMs
