@@ -9,57 +9,60 @@ import User from "../models/User";
 class AuthService {
   // register user as recipient
   async registerUser(userData: RegisterUserData): Promise<any> {
-    const { name, email, password, issuerAddress, role, walletAddress } = userData;
+    try {
+      const { name, email, password, issuerAddress, role, walletAddress } = userData;
 
-    const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email });
 
-    const existingIssuer = await Institution.findOne({ address: issuerAddress });
+      const existingIssuer = await Institution.findOne({ address: issuerAddress });
 
-    if (!existingIssuer) {
-      throw new Error("Issuer not found, cannot register user");
+      if (!existingIssuer) {
+        throw new Error("Issuer not found, cannot register user");
+      }
+
+      if (existingUser) {
+        throw new Error("User already exists");
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        walletAddress,
+      });
+
+      return await newUser.save();
+    } catch (error: Error | any) {
+      throw new Error(error.message);
     }
-
-    if (existingUser) {
-      throw new Error("User already exists");
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      walletAddress,
-    });
-
-    return await newUser.save();
   }
 
   // register user as institution(issuer)
-  async registerInstitution(userData: RegisterInstitutionData): Promise<void> {
-    const { institutionName, email, password, address } = userData;
-
-    const existingUser = await Institution.findOne({ email });
-    if (existingUser) {
-      throw new Error("User already exists");
+  async registerInstitution(userData: RegisterInstitutionData): Promise<any> {
+    try {
+      const { institutionName, email, password, address } = userData;
+      const existingUser = await Institution.findOne({ email });
+      if (existingUser) {
+        throw new Error("Institution already exists");
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new Institution({
+        institutionName,
+        email,
+        password: hashedPassword,
+        address,
+      });
+      return await newUser.save();
+    } catch (error: Error | any) {
+      throw new Error(error.message);
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new Institution({
-      institutionName,
-      email,
-      password: hashedPassword,
-      address,
-    });
-
-    await newUser.save();
   }
 
   async loginUser(loginData: LoginUserData): Promise<LoginResult> {
-    const { email, password } = loginData;
-
     try {
+      const { email, password } = loginData;
       let payload: TokenPayload;
       let accessToken: string, refreshToken: string;
 
