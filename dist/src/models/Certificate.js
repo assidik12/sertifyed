@@ -1,5 +1,4 @@
 "use strict";
-// src/models/Certificate.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -34,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// src/models/Certificate.ts
 const mongoose_1 = __importStar(require("mongoose"));
 // Definisikan Skema Mongoose
 const CertificateSchema = new mongoose_1.Schema({
@@ -66,6 +66,10 @@ const CertificateSchema = new mongoose_1.Schema({
         type: String,
         required: false, // Opsional
     },
+    fileUploader: {
+        type: String,
+        required: [true, "File uploader wajib diisi."],
+    },
     // Data dari/untuk blockchain
     tokenId: {
         type: Number,
@@ -86,11 +90,6 @@ const CertificateSchema = new mongoose_1.Schema({
     organization: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "Organization",
-        required: true,
-    },
-    file: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "File",
         required: true,
     },
 }, {

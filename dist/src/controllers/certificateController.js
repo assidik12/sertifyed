@@ -15,22 +15,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadCertificate = uploadCertificate;
 exports.getVerificationDataById = getVerificationDataById;
 exports.getCertificateByOwner = getCertificateByOwner;
-const promises_1 = __importDefault(require("fs/promises")); // Gunakan versi promise untuk async/await
 const blockchainService_1 = require("../services/blockchainService");
-const File_1 = require("../models/File");
 const Certificate_1 = __importDefault(require("../models/Certificate"));
 const hash_1 = require("../utils/hash");
 const emailService_1 = require("../services/emailService");
+const pinata_config_1 = require("../config/pinata.config");
 function uploadCertificate(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
         const { studentName, studentEmail, courseTitle, issuerName, recipientWallet, certificateDescription, grade } = req.body;
         const file = req.file;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-        if (!userId || !studentName || !studentEmail || !courseTitle || !issuerName || !recipientWallet || !certificateDescription || !grade) {
-            res.status(400).json({ message: "Missing required fields" });
-            return;
-        }
         if (!userId) {
             res.status(401).json({ message: "Unauthorized" });
             return;
@@ -39,28 +34,18 @@ function uploadCertificate(req, res) {
             res.status(400).json({ message: "No file uploaded" });
             return;
         }
-        if (!studentName || !courseTitle || !issuerName || !recipientWallet) {
-            // Jika ada field yang kurang, hapus file yang sudah terlanjur di-upload
-            yield promises_1.default.unlink(file.path);
-            res.status(400).json({ message: "Missing required fields" });
-            return;
-        }
-        // Simpan metadata file terlebih dahulu
-        const uploadedFile = yield File_1.FileModel.create({
-            filename: file.filename,
-            path: file.path,
-            mimetype: file.mimetype,
-            size: file.size,
-        });
         try {
-            // LANGKAH 1: Siapkan data yang akan disimpan dan di-hash
+            const Pinning = yield (0, pinata_config_1.pinFileToPinata)(file.buffer, file.originalname);
+            if (!Pinning) {
+                throw new Error("Gagal mengunggah file ke Pinata");
+            }
             const certificateDataToStore = {
                 studentName,
                 courseTitle,
                 issueDate: new Date(),
                 issuerName,
                 recipientWallet,
-                certificateDescription: certificateDescription || undefined, // Set ke undefined jika kosong
+                fileUploader: Pinning,
                 grade: grade || undefined, // Set ke undefined jika kosong
             };
             // LANGKAH 2: Buat "Sidik Jari Digital" (dataHash)
@@ -70,17 +55,27 @@ function uploadCertificate(req, res) {
             const { tokenId, transactionHash } = yield (0, blockchainService_1.issueCertificateOnChain)(recipientWallet, dataHash);
             console.log(`Berhasil di-mint! Token ID: ${tokenId}, Tx Hash: ${transactionHash}`);
             // LANGKAH 4: Simpan bukti lengkap ke CertificateModel
-            const datas = Object.assign(Object.assign({}, certificateDataToStore), { // Gunakan data yang sudah disiapkan
+            const datas = {
+                courseTitle,
+                fileUploader: Pinning,
+                organization: userId,
+                dataHash,
+                issueDate: new Date(),
+                issuerName,
+                recipientWallet,
+                studentName,
                 tokenId,
                 transactionHash,
-                dataHash, file: uploadedFile._id, organization: userId });
+                certificateDescription,
+                grade: grade || undefined,
+            };
             yield Certificate_1.default.create(datas);
             const sendByEmail = yield (0, emailService_1.sendEmail)(studentEmail, studentName, {
                 courseTitle,
                 issuerName,
                 issueDate: new Date(),
                 tokenId: tokenId,
-                transactionHash: transactionHash,
+                fileUploader: Pinning,
                 verifyUrl: `https://sepolia.etherscan.io/tx/${transactionHash}`,
             });
             if (!sendByEmail) {
@@ -97,15 +92,6 @@ function uploadCertificate(req, res) {
         }
         catch (error) {
             console.error("Error saat proses penerbitan sertifikat:", error);
-            // Rollback: hapus file fisik dan record dari database
-            try {
-                yield promises_1.default.unlink(file.path);
-                yield File_1.FileModel.deleteOne({ _id: uploadedFile._id });
-                console.log(`Rollback berhasil: file ${file.filename} dan record DB telah dihapus.`);
-            }
-            catch (cleanupError) {
-                console.error("Error saat melakukan cleanup (rollback):", cleanupError);
-            }
             // Penanganan error yang lebih spesifik
             if (error instanceof Error && error.name === "MongoServerError" && error.code === 11000) {
                 res.status(409).json({
@@ -135,8 +121,6 @@ function getVerificationDataById(req, res) {
         try {
             const certificate = yield Certificate_1.default.findOne({ tokenId });
             console.log("\n1. Mengambil data sertifikat...");
-            console.log(`Mengambil data sertifikat dengan Token ID: ${tokenId}`);
-            console.log(`   -> Sertifikat: ${certificate}`);
             if (!certificate || !certificate.tokenId) {
                 res.status(404).json({ message: "Sertifikat tidak ditemukan" });
                 return;
@@ -144,8 +128,6 @@ function getVerificationDataById(req, res) {
             const { dataHash, ownerWallet } = yield (0, blockchainService_1.getOnChainVerificationData)(certificate.tokenId);
             if (dataHash === certificate.dataHash && ownerWallet === certificate.recipientWallet) {
                 const data = {
-                    transactionHash: certificate.transactionHash,
-                    dataHash: certificate.dataHash,
                     studentName: certificate.studentName,
                     courseTitle: certificate.courseTitle,
                     issueDate: certificate.issueDate,
@@ -154,8 +136,7 @@ function getVerificationDataById(req, res) {
                     certificateDescription: certificate.certificateDescription,
                     grade: certificate.grade,
                     tokenId: certificate.tokenId,
-                    organization: certificate.organization,
-                    file: certificate.file,
+                    fileUploader: certificate.fileUploader,
                 };
                 res.status(200).json({ message: "Sertifikat ditemukan dalam blockchain", data });
             }
@@ -188,7 +169,18 @@ function getCertificateByOwner(req, res) {
             for (const tokenId of tokenIds) {
                 const offChainCertificate = yield Certificate_1.default.findOne({ tokenId });
                 if (offChainCertificate) {
-                    offChainCertificates.push(offChainCertificate);
+                    offChainCertificates.push({
+                        studentName: offChainCertificate.studentName,
+                        courseTitle: offChainCertificate.courseTitle,
+                        issueDate: offChainCertificate.issueDate,
+                        issuerName: offChainCertificate.issuerName,
+                        recipientWallet: offChainCertificate.recipientWallet,
+                        certificateDescription: offChainCertificate.certificateDescription,
+                        grade: offChainCertificate.grade,
+                        fileUploader: offChainCertificate.fileUploader,
+                        tokenId: offChainCertificate.tokenId,
+                        id_transaction: offChainCertificate.transactionHash,
+                    });
                 }
             }
             res.status(200).json({ message: "Sertifikat ditemukan dalam blockchain", offChainCertificates });

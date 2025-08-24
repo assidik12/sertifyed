@@ -69,7 +69,6 @@ const authController = {
     login: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const { email, password } = req.body;
-            console.log("otw");
             const loginResult = yield authService_1.default.loginUser({ email, password });
             res.cookie("refreshToken", loginResult.refreshToken, {
                 httpOnly: true,

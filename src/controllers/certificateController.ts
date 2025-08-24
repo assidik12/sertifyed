@@ -1,21 +1,16 @@
 import { Request, Response } from "express";
-import fs from "fs/promises"; // Gunakan versi promise untuk async/await
 import { getOnChainVerificationData, getTokenIdsByOwner, issueCertificateOnChain } from "../services/blockchainService";
-import { FileModel } from "../models/File";
 import CertificateModel from "../models/Certificate";
 import { createDataHash } from "../utils/hash";
 import { CustomRequest } from "../types/customRequest";
 import { sendEmail } from "../services/emailService";
+import { pinFileToPinata } from "../config/pinata.config";
+import { StoredCertificateDataOffChain, StoredCertificateDataOnChain } from "../types/certificateType";
 
 export async function uploadCertificate(req: CustomRequest, res: Response): Promise<void> {
   const { studentName, studentEmail, courseTitle, issuerName, recipientWallet, certificateDescription, grade } = req.body;
   const file = req.file;
   const userId = req.user?.id;
-
-  if (!userId || !studentName || !studentEmail || !courseTitle || !issuerName || !recipientWallet || !certificateDescription || !grade) {
-    res.status(400).json({ message: "Missing required fields" });
-    return;
-  }
 
   if (!userId) {
     res.status(401).json({ message: "Unauthorized" });
@@ -26,30 +21,21 @@ export async function uploadCertificate(req: CustomRequest, res: Response): Prom
     res.status(400).json({ message: "No file uploaded" });
     return;
   }
-  if (!studentName || !courseTitle || !issuerName || !recipientWallet) {
-    // Jika ada field yang kurang, hapus file yang sudah terlanjur di-upload
-    await fs.unlink(file.path);
-    res.status(400).json({ message: "Missing required fields" });
-    return;
-  }
-
-  // Simpan metadata file terlebih dahulu
-  const uploadedFile = await FileModel.create({
-    filename: file.filename,
-    path: file.path,
-    mimetype: file.mimetype,
-    size: file.size,
-  });
 
   try {
-    // LANGKAH 1: Siapkan data yang akan disimpan dan di-hash
-    const certificateDataToStore = {
+    const Pinning = await pinFileToPinata(file.buffer, file.originalname);
+
+    if (!Pinning) {
+      throw new Error("Gagal mengunggah file ke Pinata");
+    }
+
+    const certificateDataToStore: StoredCertificateDataOnChain = {
       studentName,
       courseTitle,
       issueDate: new Date(),
       issuerName,
       recipientWallet,
-      certificateDescription: certificateDescription || undefined, // Set ke undefined jika kosong
+      fileUploader: Pinning,
       grade: grade || undefined, // Set ke undefined jika kosong
     };
 
@@ -62,13 +48,19 @@ export async function uploadCertificate(req: CustomRequest, res: Response): Prom
     console.log(`Berhasil di-mint! Token ID: ${tokenId}, Tx Hash: ${transactionHash}`);
 
     // LANGKAH 4: Simpan bukti lengkap ke CertificateModel
-    const datas = {
-      ...certificateDataToStore, // Gunakan data yang sudah disiapkan
+    const datas: StoredCertificateDataOffChain = {
+      courseTitle,
+      fileUploader: Pinning,
+      organization: userId,
+      dataHash,
+      issueDate: new Date(),
+      issuerName,
+      recipientWallet,
+      studentName,
       tokenId,
       transactionHash,
-      dataHash,
-      file: uploadedFile._id,
-      organization: userId,
+      certificateDescription,
+      grade: grade || undefined,
     };
     await CertificateModel.create(datas);
 
@@ -77,7 +69,7 @@ export async function uploadCertificate(req: CustomRequest, res: Response): Prom
       issuerName,
       issueDate: new Date(),
       tokenId: tokenId,
-      transactionHash: transactionHash,
+      fileUploader: Pinning,
       verifyUrl: `https://sepolia.etherscan.io/tx/${transactionHash}`,
     });
 
@@ -95,15 +87,6 @@ export async function uploadCertificate(req: CustomRequest, res: Response): Prom
     });
   } catch (error) {
     console.error("Error saat proses penerbitan sertifikat:", error);
-
-    // Rollback: hapus file fisik dan record dari database
-    try {
-      await fs.unlink(file.path);
-      await FileModel.deleteOne({ _id: uploadedFile._id });
-      console.log(`Rollback berhasil: file ${file.filename} dan record DB telah dihapus.`);
-    } catch (cleanupError) {
-      console.error("Error saat melakukan cleanup (rollback):", cleanupError);
-    }
 
     // Penanganan error yang lebih spesifik
     if (error instanceof Error && error.name === "MongoServerError" && (error as any).code === 11000) {
@@ -136,8 +119,6 @@ export async function getVerificationDataById(req: Request, res: Response): Prom
   try {
     const certificate = await CertificateModel.findOne({ tokenId });
     console.log("\n1. Mengambil data sertifikat...");
-    console.log(`Mengambil data sertifikat dengan Token ID: ${tokenId}`);
-    console.log(`   -> Sertifikat: ${certificate}`);
 
     if (!certificate || !certificate.tokenId) {
       res.status(404).json({ message: "Sertifikat tidak ditemukan" });
@@ -147,8 +128,6 @@ export async function getVerificationDataById(req: Request, res: Response): Prom
     const { dataHash, ownerWallet } = await getOnChainVerificationData(certificate.tokenId);
     if (dataHash === certificate.dataHash && ownerWallet === certificate.recipientWallet) {
       const data = {
-        transactionHash: certificate.transactionHash,
-        dataHash: certificate.dataHash,
         studentName: certificate.studentName,
         courseTitle: certificate.courseTitle,
         issueDate: certificate.issueDate,
@@ -157,8 +136,7 @@ export async function getVerificationDataById(req: Request, res: Response): Prom
         certificateDescription: certificate.certificateDescription,
         grade: certificate.grade,
         tokenId: certificate.tokenId,
-        organization: certificate.organization,
-        file: certificate.file,
+        fileUploader: certificate.fileUploader,
       };
 
       res.status(200).json({ message: "Sertifikat ditemukan dalam blockchain", data });
@@ -194,7 +172,18 @@ export async function getCertificateByOwner(req: Request, res: Response): Promis
     for (const tokenId of tokenIds) {
       const offChainCertificate = await CertificateModel.findOne({ tokenId });
       if (offChainCertificate) {
-        offChainCertificates.push(offChainCertificate);
+        offChainCertificates.push({
+          studentName: offChainCertificate.studentName,
+          courseTitle: offChainCertificate.courseTitle,
+          issueDate: offChainCertificate.issueDate,
+          issuerName: offChainCertificate.issuerName,
+          recipientWallet: offChainCertificate.recipientWallet,
+          certificateDescription: offChainCertificate.certificateDescription,
+          grade: offChainCertificate.grade,
+          fileUploader: offChainCertificate.fileUploader,
+          tokenId: offChainCertificate.tokenId,
+          id_transaction: offChainCertificate.transactionHash,
+        });
       }
     }
 

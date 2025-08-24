@@ -1,8 +1,6 @@
 // src/models/Certificate.ts
-
 import mongoose, { Schema, Document } from "mongoose";
 
-// Interface untuk mendefinisikan tipe data dari sebuah dokumen sertifikat
 export interface ICertificate extends Document {
   // Data yang dikirim dari frontend & digunakan untuk membuat hash
   studentName: string;
@@ -10,17 +8,17 @@ export interface ICertificate extends Document {
   issueDate: Date;
   issuerName: string;
   recipientWallet: string;
-  certificateDescription?: string;
+  fileUploader: string;
   grade?: string;
 
   // Data yang didapat dari/untuk blockchain
   tokenId: number;
+  certificateDescription?: string;
   transactionHash: string;
   dataHash: string; // Hash dari semua data di atas
 
   // Relasi ke model lain
   organization: mongoose.Schema.Types.ObjectId; // Foreign key untuk Organization
-  file: mongoose.Schema.Types.ObjectId; // Foreign key untuk File
 }
 
 // Definisikan Skema Mongoose
@@ -55,6 +53,10 @@ const CertificateSchema: Schema = new Schema(
       type: String,
       required: false, // Opsional
     },
+    fileUploader: {
+      type: String,
+      required: [true, "File uploader wajib diisi."],
+    },
 
     // Data dari/untuk blockchain
     tokenId: {
@@ -77,11 +79,6 @@ const CertificateSchema: Schema = new Schema(
     organization: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
-      required: true,
-    },
-    file: {
-      type: Schema.Types.ObjectId,
-      ref: "File",
       required: true,
     },
   },

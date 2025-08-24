@@ -21,48 +21,58 @@ class AuthService {
     // register user as recipient
     registerUser(userData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { name, email, password, issuerAddress, role, walletAddress } = userData;
-            const existingUser = yield User_1.default.findOne({ email });
-            const existingIssuer = yield Insitution_1.default.findOne({ address: issuerAddress });
-            if (!existingIssuer) {
-                throw new Error("Issuer not found, cannot register user");
+            try {
+                const { name, email, password, issuerAddress, role, walletAddress } = userData;
+                const existingUser = yield User_1.default.findOne({ email });
+                const existingIssuer = yield Insitution_1.default.findOne({ address: issuerAddress });
+                if (!existingIssuer) {
+                    throw new Error("Issuer not found, cannot register user");
+                }
+                if (existingUser) {
+                    throw new Error("User already exists");
+                }
+                const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+                const newUser = new User_1.default({
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role,
+                    walletAddress,
+                });
+                return yield newUser.save();
             }
-            if (existingUser) {
-                throw new Error("User already exists");
+            catch (error) {
+                throw new Error(error.message);
             }
-            const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-            const newUser = new User_1.default({
-                name,
-                email,
-                password: hashedPassword,
-                role,
-                walletAddress,
-            });
-            return yield newUser.save();
         });
     }
     // register user as institution(issuer)
     registerInstitution(userData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { institutionName, email, password, address } = userData;
-            const existingUser = yield Insitution_1.default.findOne({ email });
-            if (existingUser) {
-                throw new Error("User already exists");
+            try {
+                const { institutionName, email, password, address } = userData;
+                const existingUser = yield Insitution_1.default.findOne({ email });
+                if (existingUser) {
+                    throw new Error("Institution already exists");
+                }
+                const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+                const newUser = new Insitution_1.default({
+                    institutionName,
+                    email,
+                    password: hashedPassword,
+                    address,
+                });
+                return yield newUser.save();
             }
-            const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-            const newUser = new Insitution_1.default({
-                institutionName,
-                email,
-                password: hashedPassword,
-                address,
-            });
-            yield newUser.save();
+            catch (error) {
+                throw new Error(error.message);
+            }
         });
     }
     loginUser(loginData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { email, password } = loginData;
             try {
+                const { email, password } = loginData;
                 let payload;
                 let accessToken, refreshToken;
                 // Check if the uer is a student or an issuer

@@ -1,5 +1,14 @@
 import { TransactionalEmailsApi, SendSmtpEmail } from "@getbrevo/brevo";
-import generateQRCodeFromData, { CertificateQRData } from "../utils/generateQR";
+import generateQRCodeFromData from "../utils/generateQR";
+
+interface CertificateEmailPayload {
+  courseTitle: string;
+  issuerName: string;
+  issueDate: Date;
+  tokenId: number | string;
+  fileUploader: string;
+  verifyUrl: string;
+}
 
 /**
  * Helper function untuk membuat konten HTML email.
@@ -9,7 +18,7 @@ function _createEmailHtml(
   data: CertificateEmailPayload,
   qrCodeCid: string // Menerima CID, bukan data URL
 ): string {
-  const { courseTitle, issuerName, issueDate, tokenId, transactionHash, verifyUrl } = data;
+  const { courseTitle, issuerName, issueDate, tokenId, fileUploader, verifyUrl } = data;
   const formattedDate = new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date(issueDate));
 
   return `
@@ -40,18 +49,13 @@ function _createEmailHtml(
           <p>Halo <strong>${recipientName}</strong>,</p>
           <p>Selamat! Sertifikat Anda untuk <strong>${courseTitle}</strong> telah berhasil diterbitkan oleh <strong>${issuerName}</strong>.</p>
           <p style="text-align: center; margin: 30px 0;">
-            <a href="${verifyUrl}" class="button">Lihat Sertifikat Saya</a>
+            <a href="${fileUploader}" class="button">Lihat Sertifikat Saya</a>
           </p>
           <table class="details-table">
             <tr><td>Diterbitkan pada</td><td>: ${formattedDate}</td></tr>
             <tr><td>Token ID</td><td>: ${tokenId}</td></tr>
-            <tr><td>Transaksi Hash</td><td style="word-break: break-all;">: <a href="https://sepolia.etherscan.io/tx/${transactionHash}" target="_blank">${transactionHash}</a></td></tr>
+            <tr><td>Link Verifikasi On-chain</td><td>: ${verifyUrl}</td></tr>
           </table>
-          <div class="qr-section">
-            <p>Pindai kode QR di bawah ini untuk verifikasi cepat:</p>
-            <!-- PERBAIKAN: Menggunakan CID untuk sumber gambar -->
-            <img src="cid:${qrCodeCid}" alt="Kode QR Verifikasi" style="width: 150px; height: 150px;">
-          </div>
         </div>
         <div class="footer"><p>&copy; ${new Date().getFullYear()} SertifyEd. Semua Hak Cipta Dilindungi.</p></div>
       </div>
@@ -60,22 +64,11 @@ function _createEmailHtml(
   `;
 }
 
-interface CertificateEmailPayload {
-  courseTitle: string;
-  issuerName: string;
-  issueDate: Date;
-  tokenId: number | string;
-  transactionHash: string;
-  verifyUrl: string;
-}
-
 /**
  * Mengirimkan email notifikasi dengan QR Code sebagai lampiran CID.
  */
 export async function sendEmail(recipientEmail: string, recipientName: string, data: CertificateEmailPayload): Promise<boolean> {
   try {
-    const { issuerName, courseTitle, verifyUrl } = data;
-
     // Validasi environment variables
     const APIKEY = process.env.BREVO_API_KEY;
     const SENDER_EMAIL = process.env.SENDER_EMAIL;
@@ -87,42 +80,29 @@ export async function sendEmail(recipientEmail: string, recipientName: string, d
     const emailAPI = new TransactionalEmailsApi();
     (emailAPI as any).authentications.apiKey.apiKey = APIKEY;
 
-    // --- PERSIAPAN LAMPIRAN (ATTACHMENT) ---
-
-    // 1. Siapkan data untuk di-encode ke QR Code
-    const qrData: CertificateQRData = {
-      studentName: recipientName,
-      courseTitle: data.courseTitle,
-      issueDate: data.issueDate,
-      issuerName: data.issuerName,
-      tokenId: data.tokenId,
-      verifyUrl: data.verifyUrl,
-    };
-
     // 2. Generate QR Code sebagai data URL base64
-    const qrCodeDataUrl = await generateQRCodeFromData(qrData);
+    const qrCodeDataUrl: string = await generateQRCodeFromData(data.fileUploader);
 
-    // 3. Ekstrak hanya data base64 murni dari data URL
-    // Contoh: dari "data:image/png;base64,iVBORw0KGgo..." menjadi "iVBORw0KGgo..."
-    const base64Content = qrCodeDataUrl.split("base64,")[1];
+    // 3. Ekstrak konten base64 dari data URL
+    const base64Content = qrCodeDataUrl.replace(/^data:image\/png;base64,/, "");
 
     // 4. Definisikan nama file untuk CID
     const qrCodeFilename = "qrcode.png";
 
     // 5. Buat konten HTML dengan mereferensikan CID
-    const htmlContent = _createEmailHtml(recipientName, data, qrCodeFilename);
+    const htmlContent = _createEmailHtml(recipientName, data, base64Content);
 
     // --- KONFIGURASI EMAIL ---
     const message = new SendSmtpEmail();
-    message.subject = `Selamat! Sertifikat Baru Anda untuk "${courseTitle}" Telah Terbit`;
-    message.sender = { name: issuerName, email: SENDER_EMAIL };
+    message.subject = `Selamat! Sertifikat Baru Anda untuk "${data.courseTitle}" Telah Terbit`;
+    message.sender = { name: data.issuerName, email: SENDER_EMAIL };
     message.to = [{ email: recipientEmail, name: recipientName }];
     message.htmlContent = htmlContent;
 
     // 6. Tambahkan gambar QR Code sebagai lampiran
     message.attachment = [
       {
-        name: qrCodeFilename, // Nama file ini harus sama dengan CID di HTML
+        name: qrCodeFilename,
         content: base64Content,
       },
     ];

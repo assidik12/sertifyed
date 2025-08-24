@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { uploadPdf } from "../config/cloudinary.config";
 import { uploadCertificate, getCertificateByOwner, getVerificationDataById } from "../controllers/certificateController";
 import protectRoute from "../middleware/protectRoute";
+import { validateCreateCertificate } from "../middleware/validation";
+import { uploadPdf } from "../config/pinata.config";
 
 const certificateRoute = Router();
 
@@ -12,6 +13,6 @@ certificateRoute.get("/user", getCertificateByOwner);
 certificateRoute.get("/:tokenId", getVerificationDataById);
 
 // create certificate from institution
-certificateRoute.post("/", protectRoute, uploadPdf.single("certificate"), uploadCertificate);
+certificateRoute.post("/", protectRoute, validateCreateCertificate, uploadPdf.single("certificate"), uploadCertificate);
 
 export default certificateRoute;
